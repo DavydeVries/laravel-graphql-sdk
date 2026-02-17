@@ -2,61 +2,61 @@
 
 namespace Preprio;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
+use Preprio\Commands\InstallCommand;
 
 class PreprServiceProvider extends ServiceProvider
 {
-    /**
-     * Bootstrap the application services.
-     */
-    public function boot()
+    public function boot(): void
     {
-        Http::macro('prepr', function ($data) {
+        $this->registerCommands();
+        $this->registerPublishing();
+        $this->registerMacros();
+    }
 
-            $headers = [];
+    public function register(): void
+    {
+        $this->mergeConfigFrom(__DIR__ . '/../config/prepr.php', 'prepr');
 
-            if(data_get($data,'headers')) {
-                $headers = data_get($data,'headers');
-            }
-
-            if (\Request()->hasHeader('CF-Connecting-IP')) {
-                data_set($headers, 'Prepr-Visitor-IP', \Request()->header('CF-Connecting-IP'));
-            } else {
-                if (\Request()->hasHeader('x-real-ip')) {
-                    data_set($headers, 'Prepr-Visitor-IP', \Request()->header('x-real-ip'));
-                }
-            }
-
-            $json = [
-                'query' => null,
-                'variables' => []
-            ];
-
-            if(data_get($data,'query')) {
-                $json['query'] = file_get_contents(app_path('Queries/' . data_get($data,'query') . '.graphql'));
-            } elseif(data_get($data,'raw-query')) {
-                $json['query'] = data_get($data,'raw-query');
-            }
-
-            if(data_get($data,'variables')) {
-                $json['variables'] = data_get($data,'variables');
-            }
-
-            return Http::acceptJson()
-                ->timeout(config('services.prepr.timeout',30))
-                ->connectTimeout(config('services.prepr.connect_timeout',10))
-                ->withHeaders($headers)
-                ->post(config('services.prepr.endpoint'), $json);
-
+        $this->app->singleton(PreprClient::class, function (): PreprClient {
+            return new PreprClient();
         });
     }
 
-    /**
-     * Register the application services.
-     */
-    public function register()
+    protected function registerCommands(): void
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                InstallCommand::class,
+            ]);
+        }
+    }
 
+    protected function registerPublishing(): void
+    {
+        $this->publishes([
+            __DIR__ . '/../config/prepr.php' => config_path('prepr.php'),
+        ], 'prepr-config');
+
+        $this->publishes([
+            __DIR__ . '/../Queries/graphql.config.yml' => app_path('Queries/graphql.config.yml'),
+        ], 'prepr-queries');
+    }
+
+    protected function registerMacros(): void
+    {
+        Http::macro('prepr', function (array $data) {
+            $client = app(PreprClient::class);
+
+            return $client->sendRequest($this, $data);
+        });
+
+        PendingRequest::macro('prepr', function (array $data) {
+            $client = app(PreprClient::class);
+
+            return $client->sendRequest($this, $data);
+        });
     }
 }
