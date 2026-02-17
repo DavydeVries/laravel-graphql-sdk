@@ -1,0 +1,8 @@
+schema: schema.graphql
+extensions:
+  endpoints:
+    Production:
+      url: ${PREPR_ENDPOINT}
+      headers:
+        Content-Type: application/json
+      introspect: true
