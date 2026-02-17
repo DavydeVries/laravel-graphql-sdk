@@ -19,12 +19,15 @@ class InstallCommand extends Command
             '--force' => true,
         ]);
 
-        $this->comment('Publishing Prepr GraphQL config...');
+        $target = app_path('Queries/graphql.config.yml');
 
-        $this->callSilent('vendor:publish', [
-            '--tag' => 'prepr-queries',
-            '--force' => true,
-        ]);
+        if (!is_file($target)) {
+            $this->comment('Publishing Prepr GraphQL config...');
+            $this->callSilent('vendor:publish', [
+                '--tag' => 'prepr-queries',
+            ]);
+            $this->line('Created: app/Queries/graphql.config.yml');
+        }
 
         $this->info('Prepr GraphQL SDK installed successfully.');
         $this->newLine();
