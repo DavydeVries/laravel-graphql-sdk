@@ -1,6 +1,10 @@
 # Laravel GraphQL SDK
 This Laravel package is a provider for the Prepr GraphQL API.
 
+Architecture:
+- `PreprServiceProvider` handles package bootstrapping (config merge, macros, commands, publishing).
+- `PreprClient` handles request sending and payload/header building.
+
 ## How to install
 
 Install Package
@@ -9,22 +13,31 @@ Install Package
 composer require preprio/laravel-graphql-sdk
 ```
 
-Added config in you're .env file and config/services.php
+Publish and install package config
 
 ```
-config/services.php
+php artisan prepr:install
+```
 
-    'prepr' => [
-        'endpoint' => env('PREPR_ENDPOINT'),
-        'timeout' => env('PREPR_TIMEOUT'),
-        'connect_timeout' => env('PREPR_CONNECT_TIMEOUT')
-    ]
+This also creates:
+
+```
+app/Queries/graphql.config.yml
 ```
 
 .env
 
 ```
 PREPR_ENDPOINT={YOUR_API_ENDPOINT}
+PREPR_TIMEOUT=30
+PREPR_CONNECT_TIMEOUT=10
+PREPR_CUSTOMER_ID=
+```
+
+You can customize defaults in:
+
+```
+config/prepr.php
 ```
 
 ## Query the API
